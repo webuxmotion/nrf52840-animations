@@ -1,9 +1,22 @@
 # Zephyr RTOS SH1106 OLED "Hello World" Project
 
-This guide will take you from a completely empty project folder to running a "Hello World" text on a 1.3" (128x64) SH1106 OLED display using the SPI interface.
+This guide takes you from a completely empty project folder to running a "Hello World" text on a 1.3" (128x64) OLED display using the SPI interface.
 
 ## Prerequisites
 Ensure you have the Zephyr development environment installed and the `west` tool configured.
+
+---
+
+## Supported Hardware & Where to Buy
+
+This codebase is specifically tailored for a **1.3-inch 128x64 OLED display** running on the **Sinowealth SH1106** controller chip. 
+
+> ⚠️ **Important Note:** You must use a **7-pin (or 8-pin) SPI variant** of the module. 4-pin modules that only support I2C will not work with this specific configuration.
+
+### Recommended Purchase Links:
+* **Official Brand:** [Waveshare 1.3inch OLED Module (B)](https://waveshare.com) — Global shipping from the manufacturer.
+* **Local Distributor (Ukraine):** [Arduino.ua - OLED Display 1.3" I2C/SPI 128x64 (Blue)](https://arduino.ua) — Fast shipping within Ukraine.
+* **Generic Alternatives:** Search for **"7-pin 1.3 inch SPI OLED SH1106"** on Amazon, AliExpress, or eBay. Ensure the listing explicitly specifies the **SH1106** driver, as some 1.3" panels mistakenly use SSD1306 chips, which require different software configurations.
 
 ---
 
@@ -16,7 +29,7 @@ mkdir src
 mkdir boards
 ```
 
-Your project folder should now look like this:
+Your project folder structure should look like this:
 ```text
 my_oled_project/
 ├── boards/
@@ -25,13 +38,11 @@ my_oled_project/
 
 ---
 
-## Step 2: Create the Configuration Files
+## Step 2: Create the Files & Add Code
 
-You need to create **four essential files**. Copy and paste the respective code into each file.
+Create the following **four essential files** and copy the respective code into each of them:
 
 ### 1. `CMakeLists.txt` (Root Folder)
-Create this file in the main project directory. It tells CMake how to build the application.
-
 ```cmake
 cmake_minimum_required(VERSION 3.20.0)
 
@@ -42,8 +53,6 @@ target_sources(app PRIVATE src/main.c)
 ```
 
 ### 2. `prj.conf` (Root Folder)
-Create this file in the main project directory. It enables the hardware drivers and framebuffer subsystems inside Zephyr.
-
 ```cfg
 # Enable GPIO and SPI
 CONFIG_GPIO=y
@@ -58,7 +67,7 @@ CONFIG_CHARACTER_FRAMEBUFFER=y
 ```
 
 ### 3. `boards/app.overlay` (Boards Folder)
-Create this file inside the `boards` directory. **This is your exact hardware configuration.** It assigns the SPI pins and tells Zephyr that the SH1106 OLED is the main display.
+This file overrides your microcontroller's default pin settings and configures the SH1106 screen.
 
 ```dts
 #include <zephyr/dt-bindings/gpio/gpio.h>
@@ -114,8 +123,6 @@ Create this file inside the `boards` directory. **This is your exact hardware co
 ```
 
 ### 4. `src/main.c` (Src Folder)
-Create this file inside the `src` directory. This is the application logic that initializes the screen and prints the text.
-
 ```c
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -139,11 +146,11 @@ int main(void)
 	cfb_framebuffer_clear(display_dev, true);
 	cfb_select_font(display_dev, 0);
 	
-	// Print text at X=0, Y=0 (Line 0)
+	// Print text lines
 	cfb_print(display_dev, "Hello World!", 0, 0);
 	cfb_print(display_dev, "Zephyr RTOS", 0, 16);
 	
-	// Push the local buffer to the physical OLED screen
+	// Push local buffer to the physical OLED screen
 	cfb_framebuffer_finalize(display_dev);
 
 	printk("Display updated successfully.\n");
@@ -155,30 +162,28 @@ int main(void)
 
 ## Step 3: Physical Wiring (7 Wires)
 
-Connect your 7-pin OLED module to your Nordic development board according to this table:
+Connect your 7-pin OLED module to your Nordic development board using the following mapping:
 
-| OLED Pin | Description | Target MCU Pin |
+| OLED Board Pin Label | Function | Target MCU Pin Location |
 | :--- | :--- | :--- |
-| **VCC** | Power Supply | **3.3V** |
+| **VCC** | Power Supply (3.3V) | **3.3V** |
 | **GND** | Ground | **GND** |
-| **CLK / SCL** | SPI Clock | **P1.05** |
-| **DIN / SDA** | SPI MOSI Data | **P1.06** |
+| **CLK / SCL / D0** | SPI Clock | **P1.05** |
+| **DIN / SDA / D1** | SPI MOSI Data | **P1.06** |
 | **CS** | Chip Select | **P0.04** |
-| **D/C / DC** | Data / Command | **P0.29** |
+| **D/C / DC** | Data / Command Selection | **P0.29** |
 | **RES / RST** | Hardware Reset | **P0.30** |
 
 ---
 
 ## Step 4: Build and Flash
 
-1. **Build the application:** Run the build command from the root of your project directory. Replace `<your_board_target>` with your actual board name (e.g., `nrf52840dk_nrf52840`).
+1. Run the compilation command from the root of your project directory. Replace `<your_board_target>` with your physical hardware profile (e.g., `nrf52840dk_nrf52840`):
    ```bash
    west build -b <your_board_target>
    ```
 
-2. **Flash the board:** Connect your development board to your computer via USB and flash the compiled binary.
+2. Flash the compiled image onto the connected target microchip:
    ```bash
    west flash
    ```
-
-Once flashing is complete, the display will automatically reset and display **"Hello World!"**.
