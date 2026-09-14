@@ -15,6 +15,7 @@ void animation_timer_handler(struct k_timer *dummy) {
 }
 K_TIMER_DEFINE(anim_timer, animation_timer_handler, NULL);
 
+const int speed_px_per_sec = 64;
 
 int main(void)
 {
@@ -22,6 +23,9 @@ int main(void)
 	uint8_t font_height;
 	int x_pos;
 	int y_pos;
+
+  int64_t last_time = k_uptime_get();
+  int64_t current_time;
 
 	if (!device_is_ready(display)) {
 		LOG_ERR("Display device not ready");
@@ -53,11 +57,15 @@ int main(void)
 	while (1) {
 		k_sem_take(&display_sem, K_FOREVER);
 
+    current_time = k_uptime_get();
+    float dt = (current_time - last_time) / 1000.0f;
+    last_time = current_time;
+
     cfb_framebuffer_clear(display, false);
 
     cfb_draw_text(display, "Hello world!", x_pos, y_pos);
 
-    y_pos += 1;
+    y_pos += speed_px_per_sec * dt;
 
     if (y_pos > height) {
       y_pos = -font_height;
