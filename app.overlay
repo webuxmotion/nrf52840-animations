@@ -1,0 +1,52 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	chosen {
+		/* Вказуємо Zephyr використовувати саме наш пристрій як головний дисплей */
+		zephyr,display = &oled;
+	};
+};
+
+&pinctrl {
+	spi1_default: spi1_default {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 1, 5)>,
+				<NRF_PSEL(SPIM_MOSI, 1, 6)>;
+		};
+	};
+
+	spi1_sleep: spi1_sleep {
+		group1 {
+			psels = <NRF_PSEL(SPIM_SCK, 1, 5)>,
+				<NRF_PSEL(SPIM_MOSI, 1, 6)>;
+			low-power-enable;
+		};
+	};
+};
+
+&spi1 {
+	compatible = "nordic,nrf-spim";
+	status = "okay";
+	/* Явно зв'язуємо конфігурацію пінів з периферійним модулем */
+	pinctrl-0 = <&spi1_default>;
+	pinctrl-1 = <&spi1_sleep>;
+	pinctrl-names = "default", "sleep";
+	cs-gpios = <&gpio0 4 GPIO_ACTIVE_LOW>;
+
+	oled: sh1106@0 {
+		compatible = "sinowealth,sh1106";
+		reg = <0>;
+		spi-max-frequency = <8000000>;
+		width = <128>;
+		height = <64>;
+		segment-offset = <2>;
+		page-offset = <0>;
+		display-offset = <0>;
+		multiplex-ratio = <63>;
+		prechargep = <0x22>;
+		segment-remap;
+		com-invdir;
+		data-cmd-gpios = <&gpio0 29 GPIO_ACTIVE_HIGH>;
+		reset-gpios = <&gpio0 30 GPIO_ACTIVE_LOW>;
+	};
+};

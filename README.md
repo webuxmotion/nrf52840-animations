@@ -5,6 +5,19 @@ This guide takes you from a completely empty project folder to running a "Hello 
 ## Prerequisites
 Ensure you have the Zephyr development environment installed and the `west` tool configured.
 
+```
+west build -p -b nrf52840dk/nrf52840
+west flash
+west build && west flash
+
+ls /dev/tty.usbmodem*
+screen /dev/tty.usbmodem0010502028451 115200
+
+To close the session and return to the regular command line:Press Ctrl + A.
+Immediately after, press the K key (stands for "kill").
+A prompt will appear at the bottom: Really kill this window? [y/n]. Press Y.
+```
+
 ---
 
 ## Supported Hardware & Where to Buy
@@ -26,13 +39,11 @@ Open your terminal, navigate to your empty project folder, and create the follow
 
 ```bash
 mkdir src
-mkdir boards
 ```
 
 Your project folder structure should look like this:
 ```text
 my_oled_project/
-├── boards/
 └── src/
 ```
 
@@ -54,19 +65,24 @@ target_sources(app PRIVATE src/main.c)
 
 ### 2. `prj.conf` (Root Folder)
 ```cfg
-# Enable GPIO and SPI
 CONFIG_GPIO=y
 CONFIG_SPI=y
 
-# Enable Display subsystem and the SH1106 Driver
 CONFIG_DISPLAY=y
-CONFIG_SH1106=y
+CONFIG_SSD1306=y
 
-# Enable Character Framebuffer (CFB) for simple text rendering
 CONFIG_CHARACTER_FRAMEBUFFER=y
+CONFIG_HEAP_MEM_POOL_SIZE=4096
+
+CONFIG_CONSOLE=y
+CONFIG_UART_CONSOLE=y
+CONFIG_LOG=y
+
+CONFIG_MAIN_STACK_SIZE=2048
+CONFIG_ASSERT=y
 ```
 
-### 3. `boards/app.overlay` (Boards Folder)
+### 3. `app.overlay`
 This file overrides your microcontroller's default pin settings and configures the SH1106 screen.
 
 ```dts
@@ -74,6 +90,7 @@ This file overrides your microcontroller's default pin settings and configures t
 
 / {
 	chosen {
+		/* Вказуємо Zephyr використовувати саме наш пристрій як головний дисплей */
 		zephyr,display = &oled;
 	};
 };
@@ -98,6 +115,7 @@ This file overrides your microcontroller's default pin settings and configures t
 &spi1 {
 	compatible = "nordic,nrf-spim";
 	status = "okay";
+	/* Явно зв'язуємо конфігурацію пінів з периферійним модулем */
 	pinctrl-0 = <&spi1_default>;
 	pinctrl-1 = <&spi1_sleep>;
 	pinctrl-names = "default", "sleep";
@@ -126,34 +144,55 @@ This file overrides your microcontroller's default pin settings and configures t
 ```c
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
+#include <zephyr/drivers/display.h>
 #include <zephyr/display/cfb.h>
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
+
+static const struct device *const display = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 
 int main(void)
 {
-	const struct device *display_dev = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+	uint8_t font_width;
+	uint8_t font_height;
+	int x_pos;
+	int y_pos;
 
-	if (!device_is_ready(display_dev)) {
-		printk("Error: Display device not ready\n");
-		return -1;
+	if (!device_is_ready(display)) {
+		LOG_ERR("Display device not ready");
+		return -ENODEV;
 	}
 
-	if (cfb_framebuffer_init(display_dev)) {
-		printk("Error: Framebuffer initialization failed\n");
-		return -1;
+	if (cfb_framebuffer_init(display)) {
+		LOG_ERR("Framebuffer initialization failed");
+		return -EIO;
 	}
 
-	// Clear framebuffer and select default font
-	cfb_framebuffer_clear(display_dev, true);
-	cfb_select_font(display_dev, 0);
-	
-	// Print text lines
-	cfb_print(display_dev, "Hello World!", 0, 0);
-	cfb_print(display_dev, "Zephyr RTOS", 0, 16);
-	
-	// Push local buffer to the physical OLED screen
-	cfb_framebuffer_finalize(display_dev);
+	cfb_framebuffer_clear(display, true);
+	display_blanking_off(display);
 
-	printk("Display updated successfully.\n");
+	cfb_framebuffer_set_font(display, 0);
+	cfb_get_font_size(display, 0, &font_width, &font_height);
+
+	cfb_framebuffer_clear(display, false);
+  cfb_framebuffer_invert(display);
+
+	x_pos = (128 - (12 * font_width)) / 2;
+	y_pos = (64 - font_height) / 2;
+
+	if (x_pos < 0) x_pos = 0;
+	if (y_pos < 0) y_pos = 0;
+
+	cfb_draw_text(display, "Hello World!", x_pos, y_pos);
+
+	cfb_framebuffer_finalize(display);
+	LOG_INF("Hello World sent to display.");
+
+	while (1) {
+		k_sleep(K_FOREVER);
+	}
+
 	return 0;
 }
 ```
