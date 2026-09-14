@@ -8,6 +8,14 @@ LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
 static const struct device *const display = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
 
+K_SEM_DEFINE(display_sem, 0, 1);
+
+void animation_timer_handler(struct k_timer *dummy) {
+	k_sem_give(&display_sem);
+}
+K_TIMER_DEFINE(anim_timer, animation_timer_handler, NULL);
+
+
 int main(void)
 {
 	uint8_t font_width;
@@ -25,9 +33,6 @@ int main(void)
 		return -EIO;
 	}
 
-	cfb_framebuffer_clear(display, true);
-	display_blanking_off(display);
-
 	cfb_framebuffer_set_font(display, 0);
 	cfb_get_font_size(display, 0, &font_width, &font_height);
 
@@ -40,13 +45,25 @@ int main(void)
 	if (x_pos < 0) x_pos = 0;
 	if (y_pos < 0) y_pos = 0;
 
-	cfb_draw_text(display, "Hello world!", x_pos, y_pos);
+  uint16_t width = cfb_get_display_parameter(display, CFB_DISPLAY_WIDTH);
+	uint16_t height = cfb_get_display_parameter(display, CFB_DISPLAY_HEIGHT);
 
-	cfb_framebuffer_finalize(display);
-	LOG_INF("Hello World sent to display.");
+  k_timer_start(&anim_timer, K_NO_WAIT, K_MSEC(20));
 
 	while (1) {
-		k_sleep(K_FOREVER);
+		k_sem_take(&display_sem, K_FOREVER);
+
+    cfb_framebuffer_clear(display, false);
+
+    cfb_draw_text(display, "Hello world!", x_pos, y_pos);
+
+    y_pos += 1;
+
+    if (y_pos > height) {
+      y_pos = -font_height;
+    }
+
+    cfb_framebuffer_finalize(display);
 	}
 
 	return 0;
