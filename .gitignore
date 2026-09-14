@@ -1,0 +1,27 @@
+# --- Zephyr Build Directories and Temporary Files ---
+build/
+build_*/
+
+# --- VS Code Configuration Files ---
+.vscode/
+!.vscode/extensions.json
+
+# --- Local Environment Configuration Files ---
+.ninja_deps
+.ninja_log
+CMakeCache.txt
+CMakeFiles/
+
+# --- Vim Temporary Files and Swaps ---
+.*.swp
+.*.swo
+.swp
+.swo
+*~
+*.un~
+.netrwhist
+
+# --- OS Backup and Temporary Files ---
+.DS_Store
+Thumbs.db
+*.bak
