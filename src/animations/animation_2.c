@@ -49,4 +49,6 @@ void anim2_draw(const struct device *display, float dt, int width, int height, C
     if (angle > 4.0f * M_PI) {
         angle -= 4.0f * M_PI;
     }
+
+    cfb_draw_circle(display, &position, scaled_radius);
 }
