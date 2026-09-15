@@ -48,7 +48,11 @@ int main(void) {
 
 		cfb_framebuffer_clear(display, false);
 
+    cfb_framebuffer_set_font(display, 2);
+    cfb_draw_text(display, "webuxmotion", 2, 20);
+
 		render_frame_all(display, angle, dt, width, height);
+    render_draw(display, dt, height);
 
     angle += rotate_speed * dt;
 

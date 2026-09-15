@@ -4,6 +4,9 @@
 #include <zephyr/device.h>
 #include <stdint.h>
 
+void render_init(uint16_t width, uint16_t height);
+void render_draw(const struct device *display, float dt, int height);
+
 void render_init_lines(uint16_t width, uint16_t height);
 void render_frame_all(const struct device *display, float angle, float dt, uint16_t width, uint16_t height);
 void render_frame(const struct device *display, float angle);

@@ -1,4 +1,5 @@
 #include "render.h"
+#include "animations/animation_1.h"
 #include <zephyr/display/cfb.h>
 #include <math.h>
 #include <string.h>
@@ -7,7 +8,7 @@ typedef struct { float x; float y; } Point2D;
 typedef struct { int16_t x; int16_t y; float radius; float z; bool visible; } RenderObject;
 
 struct Line {
-  float x;       
+  float x;
   int16_t y;
   int16_t vx;
   int16_t length;
@@ -59,3 +60,11 @@ void render_frame(const struct device *display, float angle) {
 
   cfb_draw_line(display, &pA, &pB);
 }
+
+void render_init(uint16_t width, uint16_t height) {
+
+};
+
+void render_draw(const struct device *display, float dt, int height) {
+  anim1_draw(display, dt, height);
+};
