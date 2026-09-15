@@ -3,7 +3,11 @@
 
 #include <zephyr/drivers/gpio.h>
 
-#define ROTATE_SPEED          0.1f
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+#define ROTATE_SPEED          M_PI * 2
 
 void init_controls(void);
 void get_controls_snapshot(float *rotate_speed);

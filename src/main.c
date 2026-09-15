@@ -15,13 +15,6 @@ void animation_timer_handler(struct k_timer *dummy) {
 }
 K_TIMER_DEFINE(anim_timer, animation_timer_handler, NULL);
 
-struct Line {
-  float x;
-  int y;
-  int vx;
-  int length;
-};
-
 int main(void) {
 	if (!device_is_ready(display) || cfb_framebuffer_init(display)) {
 		return -EIO;
@@ -40,16 +33,9 @@ int main(void) {
   float angle = 0.0f;
   float rotate_speed = 0.0f;
 
+  render_init_lines(width, height);
+
 	k_timer_start(&anim_timer, K_NO_WAIT, K_MSEC(20)); 
-
-  struct Line lines[height];
-
-  for (int i = 0; i < height; i++) {
-    lines[i].x = 0.0f;   
-    lines[i].y = i;
-    lines[i].vx = width + i;
-    lines[i].length = 20;
-  }
 
 	while (1) {
 		k_sem_take(&display_sem, K_FOREVER);
@@ -62,22 +48,9 @@ int main(void) {
 
 		cfb_framebuffer_clear(display, false);
 
-		render_frame(display, angle);
+		render_frame_all(display, angle, dt, width, height);
 
-    angle += rotate_speed;
-
-    for (int i = 0; i < height; i++) {
-      lines[i].x += lines[i].vx * dt;
-
-      if (lines[i].x > width) {
-        lines[i].x = (float)(-lines[i].length);
-      }
-
-      struct cfb_position p1 = { .x = (int)lines[i].x, .y = lines[i].y };
-      struct cfb_position p2 = { .x = (int)lines[i].x + lines[i].length, .y = lines[i].y };
-
-      cfb_draw_line(display, &p1, &p2);
-    }
+    angle += rotate_speed * dt;
 
 		cfb_framebuffer_finalize(display);
 	}
