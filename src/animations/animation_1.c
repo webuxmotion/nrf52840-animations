@@ -3,7 +3,7 @@
 
 static float y_pixel = 0.0f;
 
-void anim1_draw(const struct device *display, float dt, int height, ControlsState buttons) {
+void anim1_draw(const struct device *display, float dt, int width, int height, ControlsState buttons) {
   cfb_framebuffer_set_font(display, 0);
 
   if (buttons.btn_1) {

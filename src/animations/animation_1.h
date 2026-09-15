@@ -4,6 +4,6 @@
 #include <zephyr/device.h>
 #include "../controls.h"
 
-void anim1_draw(const struct device *display, float dt, int height, ControlsState buttons);
+void anim1_draw(const struct device *display, float dt, int width, int height, ControlsState buttons);
 
 #endif /* ANIMATION_1_H_ */
