@@ -2,18 +2,20 @@
 #include <zephyr/device.h>
 #include <zephyr/drivers/display.h>
 #include <zephyr/display/cfb.h>
-#include <stdio.h>
+#include <zephyr/logging/log.h>
 
-#include "controls.h"
-#include "render.h"
+LOG_MODULE_REGISTER(main, LOG_LEVEL_INF);
 
 static const struct device *const display = DEVICE_DT_GET(DT_CHOSEN(zephyr_display));
+
 K_SEM_DEFINE(display_sem, 0, 1);
 
 void animation_timer_handler(struct k_timer *dummy) {
 	k_sem_give(&display_sem);
 }
 K_TIMER_DEFINE(anim_timer, animation_timer_handler, NULL);
+
+const int speed_px_per_sec = 20;
 
 struct Line {
   float x;
@@ -22,25 +24,42 @@ struct Line {
   int length;
 };
 
-int main(void) {
-	if (!device_is_ready(display) || cfb_framebuffer_init(display)) {
-		return -EIO;
-	}
+int main(void)
+{
+	uint8_t font_width;
+	uint8_t font_height;
+	float x_pos;
+	float y_pos;
 
   int64_t last_time = k_uptime_get();
   int64_t current_time;
 
-	cfb_framebuffer_invert(display);
+	if (!device_is_ready(display)) {
+		LOG_ERR("Display device not ready");
+		return -ENODEV;
+	}
 
-	init_controls();
+	if (cfb_framebuffer_init(display)) {
+		LOG_ERR("Framebuffer initialization failed");
+		return -EIO;
+	}
 
-	uint16_t width = cfb_get_display_parameter(display, CFB_DISPLAY_WIDTH);
+	cfb_framebuffer_set_font(display, 0);
+	cfb_get_font_size(display, 0, &font_width, &font_height);
+
+	cfb_framebuffer_clear(display, false);
+  cfb_framebuffer_invert(display);
+
+	x_pos = (float)(128 - (12 * font_width)) / 2.0f;
+	y_pos = (float)(64 - font_height) / 2.0f;
+
+	if (x_pos < 0) x_pos = 0;
+	if (y_pos < 0) y_pos = 0;
+
+  uint16_t width = cfb_get_display_parameter(display, CFB_DISPLAY_WIDTH);
 	uint16_t height = cfb_get_display_parameter(display, CFB_DISPLAY_HEIGHT);
 
-  float angle = 0.0f;
-  float rotate_speed = 0.0f;
-
-	k_timer_start(&anim_timer, K_NO_WAIT, K_MSEC(20)); 
+  k_timer_start(&anim_timer, K_NO_WAIT, K_MSEC(25));
 
   struct Line lines[height];
 
@@ -58,13 +77,15 @@ int main(void) {
     float dt = (current_time - last_time) / 1000.0f;
     last_time = current_time;
 
-    get_controls_snapshot(&rotate_speed);
+    cfb_framebuffer_clear(display, false);
 
-		cfb_framebuffer_clear(display, false);
+    cfb_draw_text(display, "Hello world", (int)x_pos, (int)y_pos);
 
-		render_frame(display, angle);
+    y_pos += speed_px_per_sec * dt;
 
-    angle += rotate_speed;
+    if (y_pos > height) {
+      y_pos = -font_height;
+    }
 
     for (int i = 0; i < height; i++) {
       lines[i].x += lines[i].vx * dt;
@@ -79,7 +100,8 @@ int main(void) {
       cfb_draw_line(display, &p1, &p2);
     }
 
-		cfb_framebuffer_finalize(display);
+    cfb_framebuffer_finalize(display);
 	}
+
 	return 0;
 }
