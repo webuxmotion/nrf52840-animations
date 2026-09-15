@@ -30,11 +30,6 @@ int main(void) {
 	uint16_t width = cfb_get_display_parameter(display, CFB_DISPLAY_WIDTH);
 	uint16_t height = cfb_get_display_parameter(display, CFB_DISPLAY_HEIGHT);
 
-  float angle = 0.0f;
-  float rotate_speed = 0.0f;
-
-  render_init_lines(width, height);
-
 	k_timer_start(&anim_timer, K_NO_WAIT, K_MSEC(20)); 
 
 	while (1) {
@@ -44,17 +39,12 @@ int main(void) {
     float dt = (current_time - last_time) / 1000.0f;
     last_time = current_time;
 
-    get_controls_snapshot(&rotate_speed);
+    cfb_framebuffer_clear(display, false);
 
-		cfb_framebuffer_clear(display, false);
+    ControlsState current_buttons;
+		get_buttons_snapshot(&current_buttons);
 
-    cfb_framebuffer_set_font(display, 2);
-    cfb_draw_text(display, "webuxmotion", 2, 20);
-
-		render_frame_all(display, angle, dt, width, height);
-    render_draw(display, dt, height);
-
-    angle += rotate_speed * dt;
+    render_draw(display, dt, current_buttons, width, height);
 
 		cfb_framebuffer_finalize(display);
 	}
