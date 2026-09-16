@@ -7,6 +7,5 @@ target_sources(app PRIVATE
   src/main.c
   src/controls.c 
   src/render.c 
-  src/animations/animation_1.c
-  src/animations/animation_2.c
+  src/animations/animation_3.c
 )
